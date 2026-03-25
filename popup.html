@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resolve Outdated</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #3fb950;
+      --accent-dim:#238636;
+      --warn:      #d29922;
+      --danger:    #f85149;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --radius:    8px;
+    }
+
+    body {
+      width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo {
+      width: 32px; height: 32px;
+      background: var(--accent-dim);
+      border-radius: 6px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+
+    .logo svg { width: 18px; height: 18px; fill: var(--accent); }
+
+    .header-text h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* ── Body ── */
+    main { padding: 14px 16px; }
+
+    /* Status badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .badge.on-pr .dot  { background: var(--accent); animation: pulse 1.8s infinite; }
+    .badge.on-pr       { color: var(--accent); border-color: var(--accent-dim); }
+    .badge.off-pr .dot { background: var(--warn); }
+    .badge.off-pr      { color: var(--warn); border-color: #5a4510; }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: border-color .2s, background .2s;
+    }
+
+    .step.active  { border-color: var(--accent-dim); background: #0d2119; }
+    .step.done    { border-color: #1b4332; background: #0a1e14; }
+
+    .step-icon {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      background: var(--border);
+      font-size: 10px;
+    }
+
+    .step.active .step-icon { background: var(--accent-dim); }
+    .step.done   .step-icon { background: #1b4332; }
+
+    .step-icon svg { width: 11px; height: 11px; stroke: var(--muted); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .step.active .step-icon svg,
+    .step.done   .step-icon svg { stroke: var(--accent); }
+
+    .step-label {
+      flex: 1;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .step.active .step-label,
+    .step.done   .step-label { color: var(--text); }
+
+    .step-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 16px;
+      text-align: right;
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      height: 3px;
+      background: var(--border);
+      border-radius: 3px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .progress-wrap.visible { opacity: 1; }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+      border-radius: 3px;
+      transition: width .4s ease;
+    }
+
+    /* Result card */
+    .result {
+      display: none;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+
+    .result.visible { display: block; }
+    .result.success { border-color: #1b4332; background: #0a1e14; }
+    .result.error   { border-color: #4a1414; background: #1a0a0a; }
+
+    .result-title {
+      font-weight: 600;
+      font-size: 12px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .result.success .result-title { color: var(--accent); }
+    .result.error   .result-title { color: var(--danger); }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .stat {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .stat strong { color: var(--text); }
+
+    /* Button */
+    button#run {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      cursor: pointer;
+      transition: background .15s, transform .1s, opacity .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button#run:hover:not(:disabled)  { background: #2ea043; }
+    button#run:active:not(:disabled) { transform: scale(.98); }
+    button#run:disabled               { opacity: .45; cursor: not-allowed; }
+
+    button#run svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin .8s linear infinite; }
+
+    /* Footer */
+    footer {
+      padding: 8px 16px 12px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="header-text">
+    <h1>Resolve Outdated</h1>
+    <p>GitHub PR review automation</p>
+  </div>
+</header>
+
+<main>
+  <div class="badge off-pr" id="badge">
+    <span class="dot"></span>
+    <span id="badge-text">Not on a PR page</span>
+  </div>
+
+  <div class="steps">
+    <div class="step" id="step-expand">
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <span class="step-label">Expand paginated content</span>
+      <span class="step-count" id="count-expand">—</span>
+    </div>
+    <div class="step" id="step-open">
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </div>
+      <span class="step-label">Open outdated threads</span>
+      <span class="step-count" id="count-open">—</span>
+    </div>
+    <div class="step" id="step-resolve">
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <span class="step-label">Resolve conversations</span>
+      <span class="step-count" id="count-resolve">—</span>
+    </div>
+  </div>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-title" id="result-title"></div>
+    <div class="result-stats" id="result-stats"></div>
+  </div>
+
+  <button id="run" disabled>
+    <svg id="btn-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <span id="btn-text">Run on this PR</span>
+  </button>
+</main>
+
+<footer>
+  <a href="https://github.com" target="_blank">github.com/resolve-outdated</a>
+</footer>
+
+<script src="popup.js"></script>
+</body>
+</html>
